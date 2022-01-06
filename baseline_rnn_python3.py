@@ -642,7 +642,7 @@ test_result, confidence = GetResult(test_data, args.entity_type, vocab)
 
 # visualization the result using the visualizer
 print ("writing the result to html \n")
-make_html_file(test_result, args.visulization_html, args.entity_type)
+# make_html_file(test_result, args.visulization_html, args.entity_type)  TODO
 
 # Load gene key data
 with open(args.gene_key, 'rb') as f:
@@ -650,7 +650,7 @@ with open(args.gene_key, 'rb') as f:
      f.close()
 
 print ("writing the confidence to html \n")
-make_html_file_confidence(confidence, args.confidence_html, gene_key)
+# make_html_file_confidence(confidence, args.confidence_html, gene_key)  TODO
 
 # write the the confidence to file for calculating the precision and recall
 # make_csv_file(args.csv_file, confidence)
