@@ -43,13 +43,13 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log_interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--word_embedding', type=str, default='/home/SERILOCAL/efi.tsamoura/Downloads/DPL.Release/DPL.Release/EL_release/code_data/data/pubmed_parsed/gene_0_new_pkl/0/soft_featureset_1/embedding_vec_gene_p3.pkl',
+parser.add_argument('--word_embedding', type=str, default='/home/jonathan/CollaborativeNetwork/Experiments/DPLpy3/data/pubmed_parsed/embedding_vec_gene.pkl',
                     help='initial word embedding file')
 parser.add_argument('--classifier_type', type = str, default="rnn",
                     help='the classifier type')
 parser.add_argument('--windowSize', type=int, default=5,
                     help='the window size')
-parser.add_argument('--dataroot', type=str, default='/home/SERILOCAL/efi.tsamoura/Downloads/DPL.Release/DPL.Release/EL_release/code_data/data/pubmed_parsed',
+parser.add_argument('--dataroot', type=str, default='/home/jonathan/CollaborativeNetwork/Experiments/DPLpy3/data/pubmed_parsed',
                     help='the data root')
 parser.add_argument('--train_data', type=str, default='chunk_train_41_gene.pkl',
                     help='train data')
@@ -57,7 +57,7 @@ parser.add_argument('--val_data', type=str, default='validation_gene_1_soft.pkl'
                     help='val data')
 parser.add_argument('--test_data', type=str, default='test_gene_1_soft.pkl',
                     help='test data')
-parser.add_argument('--vocab_path', type = str, default="/home/SERILOCAL/efi.tsamoura/Downloads/DPL.Release/DPL.Release/EL_release/code_data/data/pubmed_parsed/gene_0_new_pkl/0/soft_featureset_1/vocab_gene_p3.pkl",
+parser.add_argument('--vocab_path', type = str, default="//home/jonathan/CollaborativeNetwork/Experiments/DPLpy3/data/pubmed_parsed/vocab_gene.pkl",
                     help='the vocab path')
 parser.add_argument('--embed_size', type=int,  default=200,
                     help='the initial word embedding size')
@@ -69,7 +69,7 @@ parser.add_argument('--entity_type', type=str,  default='gene',
                     help='the current entity type we are trained on')
 parser.add_argument('--initial_model', type=str,  default='',
                     help='the current entity type we are trained on')
-parser.add_argument('--save_path', type=str,  default='/home/SERILOCAL/efi.tsamoura/Downloads/DPL.Release/DPL.Release/EL_release/code_data/model/model.pkl',
+parser.add_argument('--save_path', type=str,  default='/home/jonathan/CollaborativeNetwork/Experiments/DPLpy3/model/model.pkl',
                     help='the current entity type we are trained on')
 parser.add_argument('--visulization_html', type=str,  default='./result/mlp_vis.html',
                     help='the html that can write')
@@ -77,7 +77,7 @@ parser.add_argument('--combine', type=str,  default='concatenate',
                     help='how to combine the wordvector: mean, max, product, concatenate, maxpool')
 parser.add_argument('--confidence_html', type=str,  default='./result/confidence.html',
                     help='display the confidence for each prediction')
-parser.add_argument('--gene_key', type=str,  default='/home/SERILOCAL/efi.tsamoura/Downloads/DPL.Release/DPL.Release/EL_release/code_data/data/pubmed_parsed/gene_0_new_pkl/0/soft_featureset_1/gene_key_p3.pkl',
+parser.add_argument('--gene_key', type=str,  default='/home/jonathan/CollaborativeNetwork/Experiments/DPLpy3/data/gene_key.pkl',
                     help='display the confidence for each prediction')
 parser.add_argument('--window_size', type=int,  default=5,
                     help='lstm or rnn')
@@ -193,15 +193,18 @@ def train_Mstep_RNN(epoch):
             data, batch_mask, mask, target = data.cuda(), batch_mask.cuda().byte(), mask.cuda(), target.cuda()
 
         # make the data balance
-        num_pos = float(sum(target[:,0] <= target[:, 1]))
-        num_neg = float(sum(target[:,0] > target[:, 1]))
+        num_pos = float(sum(target[:, 0] <= target[:, 1]))
+        num_neg = float(sum(target[:, 0] > target[:, 1]))
         weight = torch.ones(target.size(0), 1)
         mask_pos = (target[:,0] <= target[:, 1]).cpu().float()   
         mask_neg = (target[:,0] > target[:, 1]).cpu().float()
         weight = mask_pos*(num_pos + num_neg)/num_pos
         weight += mask_neg*(num_pos + num_neg)/num_neg
-        weight = Variable(weight).cuda()
-        data, mask, target = Variable(data), Variable(mask), Variable(target)
+        if args.cuda:
+            weight = weight.cuda()
+            # weight = Variable(weight).cuda() Unnecessary
+
+        # data, mask, target = Variable(data), Variable(mask), Variable(target) NOW USELESS in new pytorch
         optimizer.zero_grad()
         output = model.forward(data, batch_mask, mask)
         loss = F.kl_div(output, target, reduce=False)
@@ -229,7 +232,11 @@ def test(epoch):
         if args.cuda:
             data, batch_mask, mask, target = data.cuda(), batch_mask.byte().cuda(), mask.cuda(), target.cuda()
 
-        data, mask, target = Variable(data, volatile=True), Variable(mask, volatile=True), Variable(target.select(1, 1).contiguous().view(-1).long())
+        # data, mask, target = Variable(data, volatile=True), Variable(mask, volatile=True), Variable(target.select(1, 1).contiguous().view(-1).long())
+        # FIXED below, volatile=True should be equivalent to requires_grad=False, which is the default
+        # Variable and Tensor have been merged
+        target = target.select(1, 1).contiguous().view(-1).long()
+
         output = model.forward(data, batch_mask, mask)
 
         val_loss += F.nll_loss(output, target).item() # need to check here 
@@ -304,8 +311,9 @@ def GetResult_valid(data, vocab, file_name):
 
             if args.cuda:
                 tokens_inc = tokens_inc.cuda()
-            input_data = Variable(tokens_inc, volatile=True)    
-            
+            #input_data = Variable(tokens_inc, volatile=True)    BELOW is Equivalent in new torch version
+            input_data = torch.tensor(tokens_inc)
+
             for item in instance['pos_neg_example']:
 
                 # vectorize the mask, for the entity
@@ -328,7 +336,7 @@ def GetResult_valid(data, vocab, file_name):
                     mask = mask.cuda()
                     batch_mask = batch_mask.byte().cuda()
 
-                mask = Variable(mask, volatile=True)
+                # mask = Variable(mask, volatile=True) Unnecessary in new torch version
 
                 output = model.forward(input_data[None], batch_mask[None].bool(), mask[None])
                 pred = output.data.max(1)[1]  # get the index of the max log-probability
@@ -380,7 +388,8 @@ def GetResult(data, entity_type, vocab):
 
             if args.cuda:
                 tokens_inc = tokens_inc.cuda()
-            input_data = Variable(tokens_inc, volatile=True)    
+            # input_data = Variable(tokens_inc, volatile=True)    BELOW equivalent
+            input_data = torch.tensor(tokens_inc)
             
             # only care the specified entity type
             checked_item = []
@@ -415,7 +424,7 @@ def GetResult(data, entity_type, vocab):
                     mask = mask.cuda()
                     batch_mask = batch_mask.byte().cuda()
 
-                mask = Variable(mask, volatile=True)
+                # mask = Variable(mask, volatile=True) Unnecessary
 
                 output = model.forward(input_data[None], batch_mask[None], mask[None])
                 pred = output.data.max(1)[1]  # get the index of the max log-probability
@@ -449,8 +458,9 @@ def GetResult(data, entity_type, vocab):
 
             if args.cuda:
                 tokens_exc = tokens_exc.cuda()
-            input_data = Variable(tokens_exc, volatile=True)    
-            
+            # input_data = Variable(tokens_exc, volatile=True) BELOW equivalent
+            input_data = torch.tensor(tokens_exc)
+
             # only care the specified entity type
             checked_item = []
             for item in instance['matched'][entity_type]:
@@ -484,7 +494,7 @@ def GetResult(data, entity_type, vocab):
                     mask = mask.cuda()
                     batch_mask = batch_mask.byte().cuda()
 
-                mask = Variable(mask, volatile=True)
+                # mask = Variable(mask, volatile=True) Unnecessary
 
                 output = model.forward(input_data[None], batch_mask[None], mask[None])
                 pred = output.data.max(1)[1]  # get the index of the max log-probability
