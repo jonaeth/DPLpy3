@@ -57,7 +57,7 @@ parser.add_argument('--val_data', type=str, default='validation_gene_1_soft.pkl'
                     help='val data')
 parser.add_argument('--test_data', type=str, default='test_gene_1_soft.pkl',
                     help='test data')
-parser.add_argument('--vocab_path', type = str, default="//home/jonathan/CollaborativeNetwork/Experiments/DPLpy3/data/pubmed_parsed/vocab_gene.pkl",
+parser.add_argument('--vocab_path', type = str, default="/home/jonathan/CollaborativeNetwork/Experiments/DPLpy3/data/pubmed_parsed/vocab_gene.pkl",
                     help='the vocab path')
 parser.add_argument('--embed_size', type=int,  default=200,
                     help='the initial word embedding size')
@@ -207,7 +207,7 @@ def train_Mstep_RNN(epoch):
         # data, mask, target = Variable(data), Variable(mask), Variable(target) NOW USELESS in new pytorch
         optimizer.zero_grad()
         output = model.forward(data, batch_mask, mask)
-        loss = F.kl_div(output, target, reduce=False)
+        loss = F.kl_div(output, target, reduction='none')
         loss = loss.sum(dim=1)*weight
         loss = loss.mean()
         loss.backward()
@@ -312,7 +312,7 @@ def GetResult_valid(data, vocab, file_name):
             if args.cuda:
                 tokens_inc = tokens_inc.cuda()
             #input_data = Variable(tokens_inc, volatile=True)    BELOW is Equivalent in new torch version
-            input_data = torch.tensor(tokens_inc)
+            input_data = tokens_inc
 
             for item in instance['pos_neg_example']:
 
@@ -389,7 +389,7 @@ def GetResult(data, entity_type, vocab):
             if args.cuda:
                 tokens_inc = tokens_inc.cuda()
             # input_data = Variable(tokens_inc, volatile=True)    BELOW equivalent
-            input_data = torch.tensor(tokens_inc)
+            input_data = tokens_inc
             
             # only care the specified entity type
             checked_item = []
@@ -459,7 +459,7 @@ def GetResult(data, entity_type, vocab):
             if args.cuda:
                 tokens_exc = tokens_exc.cuda()
             # input_data = Variable(tokens_exc, volatile=True) BELOW equivalent
-            input_data = torch.tensor(tokens_exc)
+            input_data = tokens_exc
 
             # only care the specified entity type
             checked_item = []
