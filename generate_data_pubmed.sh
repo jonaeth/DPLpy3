@@ -5,20 +5,6 @@ source=pubmed_parsed # pubmed dataset
 length=5  # length heuristic for validation
 length_train=3 # length heuristic for train
 
-
-# j: cross-validation, if no cross validation, just set j=0
-
-# all hard em
-for i in {0..0}; do
-mkdir data/${source}/${data_type}_${i}_new/
-done
-
-for i in {0..0}; do
-for j in {0..0}; do
-mkdir data/${source}/${data_type}_${i}_new/${j}/
-done
-done
-
 #for i in {0..0}; do
 #for j in {0..0}; do
 #mkdir data/${source}/${data_type}_${i}/${j}/hard
@@ -34,4 +20,4 @@ mkdir data/${source}/${data_type}_${i}_new/${j}/soft_featureset_${k}
 bash ./generate_data_soft.sh ${data_type} ${length} ${length_train} ${j} ${k} ${i}
 done
 done
-done 
+done

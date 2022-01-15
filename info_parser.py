@@ -47,7 +47,8 @@ class Info_Parser():
         if index == 0:
             pos = tree['words'][0][1]['PartOfSpeech']
         else:
-            data = tree['parsetree'].encode('ascii', 'ignore').replace('[','')
+            data = tree['parsetree'].replace('[','')
+            # data = tree['parsetree'].encode('ascii', 'ignore').replace('[', '')
             data = data.replace(']','').split()
             pos = []
             for x in data:

@@ -195,9 +195,9 @@ def train_Mstep_RNN(epoch):
         # make the data balance
         num_pos = float(sum(target[:, 0] <= target[:, 1]))
         num_neg = float(sum(target[:, 0] > target[:, 1]))
-        weight = torch.ones(target.size(0), 1)
-        mask_pos = (target[:,0] <= target[:, 1]).cpu().float()   
-        mask_neg = (target[:,0] > target[:, 1]).cpu().float()
+        #weight = torch.ones(target.size(0), 1)
+        mask_pos = (target[:, 0] <= target[:, 1]).cpu().float()
+        mask_neg = (target[:, 0] > target[:, 1]).cpu().float()
         weight = mask_pos*(num_pos + num_neg)/num_pos
         weight += mask_neg*(num_pos + num_neg)/num_neg
         if args.cuda:
